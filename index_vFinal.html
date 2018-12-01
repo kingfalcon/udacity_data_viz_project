@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="http://dimplejs.org/dist/dimple.v2.0.0.min.js"></script>
+    <style>
+      h2 {
+        text-align: center;
+        color: black;
+		font-family: sans-serif;	
+      }
+	  
+    </style>
+    <script type="text/javascript">
+      function draw(data) {
+      
+      /*
+        D3.js setup code
+      */
+
+          "use strict";
+          var margin = 100,
+              width = 1400 - margin,
+              height = 600 - margin;
+
+			d3.select("body")
+			  .append("h2")
+			  .text("Number of home runs vs. batting average for 1157 MLB players"); // Provide information on what the graph represents
+			  
+          var svg = d3.select("body")
+            .append("svg")
+              .attr("width", width + margin)
+              .attr("height", height + margin)
+            .append('g')
+                .attr('class','chart');
+
+      /*
+        Dimple.js chart construction code
+      */
+
+          var myChart = new dimple.chart(svg, data);
+          var x = myChart.addMeasureAxis("x", "Batting average");
+		  //Add mins and max to the axes so they do not resize when interacting with the legend
+			x.overrideMin = 0;
+			x.overrideMax = 0.35;
+          var y = myChart.addMeasureAxis("y", "Number of home runs");
+		  //Add mins and max to the axes so they do not resize when interacting with the legend	
+			y.overrideMin = 0;
+			y.overrideMax = 600;
+          myChart.addSeries(["Name","Handedness"], dimple.plot.scatter);
+		  var myLegend = myChart.addLegend(1325, 100, 60, 400, "Left");
+		  x.tickFormat = ",.3f"; // Add more significant digits to the x-axis to make it much clearer
+          myChart.draw();
+		  svg.selectAll("text.dimple-axis.dimple-title").style("font-size","16px"); 
+		  svg.selectAll("text.dimple-legend.dimple-legend-text").style("font-size","12px");
+		  //Increase the font size of the axes
+
+
+		  
+		// Create an interactive legend
+		// Create text box above the interactive legend
+		myChart.legends = [];
+		svg.selectAll("title_text")
+			.data(["Click legend to", "show/hide batter type"])
+			.enter()
+			.append("text")
+			    .attr("x", 1265)
+				.attr("y", function (d, i) { return 90 + i * 14; })
+				.style("font-family", "sans-serif")
+				.style("font-size", "14px")
+				.style("color", "Black")
+				.text(function (d) { return d; });
+		
+		var filterValues = dimple.getUniqueValues(data,"Handedness");
+		
+		//Create the interaction element for the legend. Every time a click happens, filter the data to draw based on the selected data.
+		myLegend.shapes.selectAll("rect")
+			.on("click",function(e) {
+				var hide = false;
+				var newFilters = [];
+				filterValues.forEach(function(f) {
+					if (f === e.aggField.slice(-1)[0]) {
+						hide = true;
+					}	else {
+						newFilters.push(f);
+					}
+				});
+				
+				if (hide) {
+					d3.select(this).style("opacity",0.2);
+				} else {
+					newFilters.push(e.aggField.slice(-1)[0]);
+					d3.select(this).style("opacity",1.0);
+				}
+				
+				filterValues = newFilters;
+				
+				myChart.data = dimple.filterData(data, "Handedness",filterValues);
+				
+				myChart.draw(800);
+				svg.selectAll("text.dimple-axis.dimple-title").style("font-size","16px"); //Increase the font size of the axes
+
+			});
+		};
+      </script>
+  </head>
+<body>
+  <script type="text/javascript">
+  /*
+    Use D3 to load the CSV and pass the contents to the draw function. Make a few small adjustments to the data: (1) make the column names more presentation-ready, (2) make the "handedness" column much clearer, and (3) use the unary operator to convert the numerical entries from strings to numbers.
+    */
+    
+d3.csv("baseball_data.csv", function(d) {
+	if (d.handedness === "R") {
+		return {
+			Name : d.name,
+			Handedness : "Right-handed hitter",
+			Height : +d.height,
+			Weight : +d.weight,
+			"Batting average" : +d.avg,
+			"Number of home runs" : +d.HR
+	};} else if (d.handedness === "L") {
+		return {
+			Name : d.name,
+			Handedness : "Left-handed hitter",
+			Height : +d.height,
+			Weight : +d.weight,
+			"Batting average" : +d.avg,
+			"Number of home runs" : +d.HR
+	};} else {
+		return {
+			Name : d.name,
+			Handedness : "Switch-hitter",
+			Height : +d.height,
+			Weight : +d.weight,
+			"Batting average" : +d.avg,
+			"Number of home runs" : +d.HR
+	};};
+},draw);
+
+  </script>
+</body>
+</html>
